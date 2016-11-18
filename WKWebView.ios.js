@@ -11,22 +11,21 @@
  */
 'use strict';
 
-var ActivityIndicator = require('ActivityIndicator');
-var EdgeInsetsPropType = require('EdgeInsetsPropType');
-var React = require('React');
-var ReactNative = require('ReactNative');
-var StyleSheet = require('StyleSheet');
-var Text = require('Text');
-var UIManager = require('UIManager');
-var View = require('View');
-
-var invariant = require('fbjs/lib/invariant');
-var keyMirror = require('fbjs/lib/keyMirror');
-var resolveAssetSource = require('resolveAssetSource');
-var requireNativeComponent = require('requireNativeComponent');
-
-var PropTypes = React.PropTypes;
-var WKWebViewManager = require('NativeModules').WKWebViewManager;
+import React, { PropTypes } from 'react';
+import ReactNative, {
+	ActivityIndicator,
+	EdgeInsetsPropType,
+	NativeModules,
+	requireNativeComponent,
+	StyleSheet,
+	Text,
+	UIManager,
+	View
+} from 'react-native';
+import invariant from 'fbjs/lib/invariant';
+import keyMirror from 'fbjs/lib/keyMirror';
+import resolveAssetSource from 'react-native/Libraries/Image/resolveAssetSource';
+let WKWebViewManager = NativeModules.WKWebViewManager;
 
 var BGWASH = 'rgba(255,255,255,0.8)';
 var RCT_WEBVIEW_REF = 'webview';
