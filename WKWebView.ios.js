@@ -1,23 +1,31 @@
+/**
+ * Copyright (c) 2015-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @providesModule WKWebViewIOS
+ * @flow
+ */
 'use strict';
 
-import React, {
-  PropTypes
-} from 'react';
+import React, { PropTypes } from 'react';
 import ReactNative, {
-  requireNativeComponent,
-  EdgeInsetsPropType,
-  StyleSheet,
-  UIManager,
-  View,
-  NativeModules,
-  Text,
-  ActivityIndicator
+	ActivityIndicator,
+	EdgeInsetsPropType,
+	NativeModules,
+	requireNativeComponent,
+	StyleSheet,
+	Text,
+	UIManager,
+	View
 } from 'react-native';
-import resolveAssetSource from 'react-native/Libraries/Image/resolveAssetSource';
-import deprecatedPropType from 'react-native/Libraries/Utilities/deprecatedPropType';
 import invariant from 'fbjs/lib/invariant';
 import keyMirror from 'fbjs/lib/keyMirror';
-var WKWebViewManager = NativeModules.WKWebViewManager;
+import resolveAssetSource from 'react-native/Libraries/Image/resolveAssetSource';
+let WKWebViewManager = NativeModules.WKWebViewManager;
 
 var BGWASH = 'rgba(255,255,255,0.8)';
 var RCT_WEBVIEW_REF = 'webview';
@@ -72,24 +80,12 @@ var defaultRenderError = (errorDomain, errorCode, errorDesc) => (
 /**
  * Renders a native WebView.
  */
+class WKWebViewIOS extends React.Component {
+  static JSNavigationScheme = JSNavigationScheme;
+  static NavigationType = NavigationType;
 
-var WKWebView = React.createClass({
-  statics: {
-    JSNavigationScheme: JSNavigationScheme,
-    NavigationType: NavigationType,
-  },
-  propTypes: {
+  static propTypes = {
     ...View.propTypes,
-
-    html: deprecatedPropType(
-      PropTypes.string,
-      'Use the `source` prop instead.'
-    ),
-
-    url: deprecatedPropType(
-      PropTypes.string,
-      'Use the `source` prop instead.'
-    ),
 
     /**
      * Loads static html or a uri (with optional headers) in the WebView.
@@ -102,12 +98,10 @@ var WKWebView = React.createClass({
         uri: PropTypes.string,
         /*
          * The HTTP Method to use. Defaults to GET if not specified.
-         * NOTE: On Android, only GET and POST are supported.
          */
         method: PropTypes.string,
         /*
          * Additional HTTP headers to send with the request.
-         * NOTE: On Android, this can only be used with GET requests.
          */
         headers: PropTypes.object,
         /*
@@ -138,70 +132,118 @@ var WKWebView = React.createClass({
      * Function that returns a view to show if there's an error.
      */
     renderError: PropTypes.func, // view to show if there's an error
+
     /**
      * Function that returns a loading indicator.
      */
     renderLoading: PropTypes.func,
+
     /**
-     * Invoked when load finish
+     * Function that is invoked when the `WebView` has finished loading.
      */
     onLoad: PropTypes.func,
+
     /**
-     * Invoked when load either succeeds or fails
+     * Function that is invoked when the `WebView` load succeeds or fails.
      */
     onLoadEnd: PropTypes.func,
+
     /**
-     * Invoked on load start
+     * Function that is invoked when the `WebView` starts loading.
      */
     onLoadStart: PropTypes.func,
+
     /**
-     * Invoked when load fails
+     * Function that is invoked when the `WebView` load fails.
      */
     onError: PropTypes.func,
+
     /**
-     * Report the progress
-     */
-    onProgress: PropTypes.func,
-    /**
+     * Boolean value that determines whether the web view bounces
+     * when it reaches the edge of the content. The default value is `true`.
      * @platform ios
      */
     bounces: PropTypes.bool,
-    scrollEnabled: PropTypes.bool,
-    automaticallyAdjustContentInsets: PropTypes.bool,
-    contentInset: EdgeInsetsPropType,
-    onNavigationStateChange: PropTypes.func,
-    scalesPageToFit: PropTypes.bool,
-    startInLoadingState: PropTypes.bool,
-    style: View.propTypes.style,
+
     /**
-     * Sets the JS to be injected when the webpage loads.
+     * Boolean value that determines whether scrolling is enabled in the
+     * `WebView`. The default value is `true`.
+     * @platform ios
+     */
+    scrollEnabled: PropTypes.bool,
+
+    /**
+     * Controls whether to adjust the content inset for web views that are
+     * placed behind a navigation bar, tab bar, or toolbar. The default value
+     * is `true`.
+     */
+    automaticallyAdjustContentInsets: PropTypes.bool,
+
+    /**
+     * The amount by which the web view content is inset from the edges of
+     * the scroll view. Defaults to {top: 0, left: 0, bottom: 0, right: 0}.
+     */
+    contentInset: EdgeInsetsPropType,
+
+    /**
+     * Function that is invoked when the `WebView` loading starts or ends.
+     */
+    onNavigationStateChange: PropTypes.func,
+
+    /**
+     * A function that is invoked when the webview posts a message to native
+     * using `window.webkit.messageHandlers.reactNative.postMessage`.
+     *
+     * postMessage accepts one argument, `data`, which will be available on the
+     * event object, `event.nativeEvent.data`.
+     */
+    onMessage: PropTypes.func,
+
+    /**
+     * Boolean value that forces the `WebView` to show the loading view
+     * on the first load.
+     */
+    startInLoadingState: PropTypes.bool,
+
+    /**
+     * The style to apply to the `WebView`.
+     */
+    style: View.propTypes.style,
+
+    /**
+     * Set this to provide JavaScript that will be injected into the web page
+     * when the view loads.
      */
     injectedJavaScript: PropTypes.string,
+
     /**
-     * Allows custom handling of any webview requests by a JS handler. Return true
-     * or false from this method to continue loading the request.
+     * Boolean that controls whether the web content is scaled to fit
+     * the view and enables the user to change the scale. The default value
+     * is `true`.
+     * @platform ios
+     */
+    scalesPageToFit: PropTypes.bool,
+
+    /**
+     * Function that allows custom handling of any web view requests. Return
+     * `true` from the function to continue loading the request and `false`
+     * to stop loading.
      * @platform ios
      */
     onShouldStartLoadWithRequest: PropTypes.func,
-    /**
-     * Copies cookies from sharedHTTPCookieStorage when calling loadRequest.
-     * Set this to true to emulate behavior of WebView component
-     */
-    sendCookies: PropTypes.bool,
-  },
-  getInitialState() {
-    return {
-      viewState: WebViewState.IDLE,
-      lastErrorEvent: (null: ?ErrorEvent),
-      startInLoadingState: true,
-    };
-  },
+  };
 
-  componentWillMount: function() {
+  state = {
+    lastErrorEvent: (null: ?ErrorEvent),
+    startInLoadingState: true,
+    viewState: WebViewState.IDLE,
+  };
+
+  componentWillMount() {
     if (this.props.startInLoadingState) {
       this.setState({viewState: WebViewState.LOADING});
     }
-  },
+  }
 
   render() {
     var otherView = null;
@@ -221,7 +263,7 @@ var WKWebView = React.createClass({
       );
     } else if (this.state.viewState !== WebViewState.IDLE) {
       console.error(
-        'RCTWKWebView invalid state encountered: ' + this.state.loading
+        'RCTWKWebView invalid state encountered: ' + this.state.viewState
       );
     }
 
@@ -239,12 +281,7 @@ var WKWebView = React.createClass({
     });
 
     var source = this.props.source || {};
-    if (this.props.html) {
-      source.html = this.props.html;
-    } else if (this.props.url) {
-      source.uri = this.props.url;
-    }
-
+    console.log('@>> i', this.props.injectedJavaScript);
     var webView =
       <RCTWKWebView
         ref={RCT_WEBVIEW_REF}
@@ -260,7 +297,7 @@ var WKWebView = React.createClass({
         onLoadingStart={this._onLoadingStart}
         onLoadingFinish={this._onLoadingFinish}
         onLoadingError={this._onLoadingError}
-        onProgress={this._onProgress}
+        onMessage={this._onMessage}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
       />;
 
@@ -270,65 +307,95 @@ var WKWebView = React.createClass({
         {otherView}
       </View>
     );
-  },
+  }
 
   /**
    * Go forward one page in the webview's history.
    */
-  goForward: function() {
+  goForward = () => {
     UIManager.dispatchViewManagerCommand(
       this.getWebViewHandle(),
       UIManager.RCTWKWebView.Commands.goForward,
       null
     );
-  },
+  };
 
   /**
    * Go back one page in the webview's history.
    */
-  goBack: function() {
+  goBack = () => {
     UIManager.dispatchViewManagerCommand(
       this.getWebViewHandle(),
       UIManager.RCTWKWebView.Commands.goBack,
       null
     );
-  },
+  };
 
   /**
    * Reloads the current page.
    */
-  reload: function() {
+  reload = () => {
+    this.setState({viewState: WebViewState.LOADING});
     UIManager.dispatchViewManagerCommand(
       this.getWebViewHandle(),
       UIManager.RCTWKWebView.Commands.reload,
       null
     );
-  },
+  };
+
+  /**
+   * Stop loading the current page.
+   */
+  stopLoading = () => {
+    UIManager.dispatchViewManagerCommand(
+      this.getWebViewHandle(),
+      UIManager.RCTWebView.Commands.stopLoading,
+      null
+    );
+  };
+
+  /**
+   * Posts a message to the web view, which will emit a `message` event.
+   * Accepts one argument, `data`, which must be a string.
+   *
+   * In your webview, you'll need to something like the following.
+   *
+   * ```js
+   * document.addEventListener('message', e => { document.title = e.data; });
+   * ```
+   */
+  postMessage = (data: string) => {
+    UIManager.dispatchViewManagerCommand(
+      this.getWebViewHandle(),
+      UIManager.RCTWKWebView.Commands.postMessage,
+      [String(data)]
+    );
+  };
 
   /**
    * We return an event with a bunch of fields including:
    *  url, title, loading, canGoBack, canGoForward
    */
-  _updateNavigationState: function(event: Event) {
+  _updateNavigationState = (event: Event) => {
     if (this.props.onNavigationStateChange) {
       this.props.onNavigationStateChange(event.nativeEvent);
     }
-  },
+  };
 
   /**
    * Returns the native webview node.
    */
-  getWebViewHandle: function(): any {
+  getWebViewHandle = (): any => {
     return ReactNative.findNodeHandle(this.refs[RCT_WEBVIEW_REF]);
-  },
+  };
 
-  _onLoadingStart: function(event: Event) {
+  _onLoadingStart = (event: Event) => {
     var onLoadStart = this.props.onLoadStart;
     onLoadStart && onLoadStart(event);
     this._updateNavigationState(event);
-  },
+  };
 
-  _onLoadingError: function(event: Event) {
+  _onLoadingError = (event: Event) => {
     event.persist(); // persist this event because we need to store it
     var {onError, onLoadEnd} = this.props;
     onError && onError(event);
@@ -339,9 +406,9 @@ var WKWebView = React.createClass({
       lastErrorEvent: event.nativeEvent,
       viewState: WebViewState.ERROR
     });
-  },
+  };
 
-  _onLoadingFinish: function(event: Event) {
+  _onLoadingFinish = (event: Event) => {
     var {onLoad, onLoadEnd} = this.props;
     onLoad && onLoad(event);
     onLoadEnd && onLoadEnd(event);
@@ -349,20 +416,31 @@ var WKWebView = React.createClass({
       viewState: WebViewState.IDLE,
     });
     this._updateNavigationState(event);
-  },
+  };
 
-  _onProgress(event: Event) {
-    var onProgress = this.props.onProgress;
-    onProgress && onProgress(event.nativeEvent.progress);
-  }
-});
+  _onLoadingFinish = (event: Event) => {
+    var {onLoad, onLoadEnd} = this.props;
+    onLoad && onLoad(event);
+    onLoadEnd && onLoadEnd(event);
+    this.setState({
+      viewState: WebViewState.IDLE,
+    });
+    this._updateNavigationState(event);
+  };
 
-var RCTWKWebView = requireNativeComponent('RCTWKWebView', WKWebView, {
+  _onMessage = (event: Event) => {
+    var {onMessage} = this.props;
+    onMessage && onMessage(event);
+  };
+}
+
+var RCTWKWebView = requireNativeComponent('RCTWKWebView', WKWebViewIOS, {
   nativeOnly: {
     onLoadingStart: true,
     onLoadingError: true,
     onLoadingFinish: true,
-  }
+    onMessage: true,
+  },
 });
 
 var styles = StyleSheet.create({
@@ -401,4 +479,4 @@ var styles = StyleSheet.create({
   }
 });
 
-export default WKWebView;
+module.exports = WKWebViewIOS;
